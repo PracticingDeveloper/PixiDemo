@@ -29,6 +29,15 @@ circle.vx = 1;
 
 stage.addChild(circle);
 
+function gameLoop() {
+  //Loop this function 60 times per second
+  requestAnimationFrame(gameLoop);
+
+  circle.x += circle.vx;
+
+  renderer.render(stage);
+}
+
 renderer.render(stage);
 
 </script>
