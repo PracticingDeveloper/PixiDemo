@@ -104,8 +104,6 @@ function gameLoop() {
 
   var caught = _.find(widgets, function(e) { return b.hit(e, drone); });
 
-  console.debug(caught);
-
   if (caught) {
     if (caught.x < drone.x) {
       caught.x += 1;
