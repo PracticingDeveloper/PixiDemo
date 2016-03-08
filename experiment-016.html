@@ -62,8 +62,8 @@ function setup() {
   _.times(1, function(n) {
     var widget = new Sprite(resources["widget.png"].texture);
 
-    widget.x = 200+Math.random()*200;
-    widget.y = 50 + Math.random()*400;
+    widget.x = 200 + Math.floor(Math.random()*200);
+    widget.y = 50 + Math.floor(Math.random()*400);
 
     widget.scale.set(0.5, 0.5);
     widget.circular = true;
