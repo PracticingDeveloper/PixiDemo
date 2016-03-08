@@ -10,6 +10,7 @@
 var Container = PIXI.Container,
     autoDetectRenderer = PIXI.autoDetectRenderer,
     loader = PIXI.loader,
+    resources = PIXI.loader.resources,
     TextureCache = PIXI.utils.TextureCache,
     Texture = PIXI.Texture,
     Sprite = PIXI.Sprite,
@@ -19,46 +20,57 @@ var Container = PIXI.Container,
 var stage = new Container(),
     renderer = autoDetectRenderer(512, 512);
 document.body.appendChild(renderer.view);
-//Circle
-var circle = new Graphics();
-circle.beginFill(0x9966FF);
-circle.drawCircle(0, 0, 16);
-circle.endFill();
-circle.x  = 32;
-circle.y  = 32;
-stage.addChild(circle);
+
+var drone, destination;
+
+//load an image and run the `setup` function when it's done
+loader
+  .add("drone.png")
+  .load(setup);
 
 var t = new Tink(PIXI, renderer.view);
 
 var pointer = t.makePointer();
-var destination = {};
 
 pointer.tap = function() {
   destination.x = pointer.x;
   destination.y = pointer.y;
 }
-
 gameLoop();
+
+function setup() {
+  drone = Sprite(resources["drone.png"].texture);  
+
+  alert(drone);
+  drone.x = 90;
+  drone.y = 90;
+
+  destination = {};
+  destination.x = drone.x;
+  destination.y = drone.y;
+
+  stage.addChild(drone);
+  renderer.render(stage);
+}
 
 function gameLoop() {
   //Loop this function 60 times per second
   requestAnimationFrame(gameLoop);
   t.update();
 
-  if (circle.x > destination.x) {
-    circle.x -= 1;
-  } else if (circle.x < destination.x) {
-    circle.x += 1;
+  if (drone.x > destination.x) {
+    drone.x -= 1;
+  } else if (drone.x < destination.x) {
+    drone.x += 1;
   }
 
-  if (circle.y < destination.y) {
-    circle.y += 1;
-  } else if (circle.y > destination.y) {
-    circle.y -= 1;
+  if (drone.y < destination.y) {
+    drone.y += 1;
+  } else if (drone.y > destination.y) {
+    drone.y -= 1;
   }
 
   renderer.render(stage);
 }
-
 </script>
 </body>
