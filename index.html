@@ -30,10 +30,11 @@ var widgets = [];
 
 //load an image and run the `setup` function when it's done
 loader
-  .add("drone.png")
   .add("widget.png")
   .add("background.png")
-  .add("drone-activated.png")
+  .add('drone-base-activated.png')
+  .add('drone-base-inactive.png')
+  .add("drone-blades.png")
   .load(setup);
 
 var t = new Tink(PIXI, renderer.view);
@@ -52,9 +53,9 @@ space.release = function() {
   drone.activated = !(drone.activated)
 
   if (drone.activated) {
-    drone.texture = resources["drone-activated.png"].texture;
+    drone_base.texture = resources["drone-base-activated.png"].texture;
   } else {
-    drone.texture = resources["drone.png"].texture;
+    drone_base.texture = resources["drone-base-inactive.png"].texture;
   }
 }
 
@@ -64,13 +65,41 @@ function setup() {
     var bg = new Sprite(resources["background.png"].texture)
     stage.addChild(bg)
 
+    _.times(1, function(n) {
+      var widget = new Sprite(resources["widget.png"].texture);
+
+      widget.x = 200 + Math.floor(Math.random()*200);
+      widget.y = 50 + Math.floor(Math.random()*400);
+
+      widget.scale.set(0.75, 0.75);
+      widget.circular = true;
+      widget.anchor.set(0.5,0.5)
+      
+      widgets.push(widget);
+
+      stage.addChild(widget);
+    });
+
   
-    drone = new Sprite(resources["drone.png"].texture);  
+    drone_base        = new Sprite(resources["drone-base-inactive.png"].texture); 
+    drone_base.anchor.set(0.5, 0.5);
+
+    drone_blades      = new Sprite(resources["drone-blades.png"].texture);
+  
+    drone = new Sprite();
+
+
+
+    drone_blades.anchor.set(0.5, 0.5);
+
+    drone.addChild(drone_base);
+    drone.addChild(drone_blades);
+
 
     drone.x = 90;
     drone.y = 90;
     drone.circular = true;
-    drone.scale.set(0.5, 0.5);
+    drone.scale.set(0.75, 0.75);
     drone.anchor.set(0.5,0.5);
     drone.activated = false;
 
@@ -79,22 +108,6 @@ function setup() {
     destination = {};
     destination.x = drone.x;
     destination.y = drone.y;
-
-  _.times(1, function(n) {
-    var widget = new Sprite(resources["widget.png"].texture);
-
-    widget.x = 200 + Math.floor(Math.random()*200);
-    widget.y = 50 + Math.floor(Math.random()*400);
-
-    widget.scale.set(0.5, 0.5);
-    widget.circular = true;
-    widget.anchor.set(0.5,0.5)
-    
-    widgets.push(widget);
-
-    stage.addChild(widget);
-  });
-
 
   renderer.render(stage);
 }
@@ -106,7 +119,7 @@ function gameLoop() {
   t.update();
 
   if (drone.x != destination.x || drone.y != destination.y) {
-    drone.rotation += 0.02;
+    drone_blades.rotation += 0.1;
   }
 
   if (drone.x > destination.x) {
