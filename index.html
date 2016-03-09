@@ -118,9 +118,8 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
   t.update();
 
-  if (drone.x != destination.x || drone.y != destination.y) {
-    drone_blades.rotation += 0.1;
-  }
+
+  drone_blades.rotation += 0.1;
 
   if (drone.x > destination.x) {
     drone.x -= 1;
