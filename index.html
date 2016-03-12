@@ -24,17 +24,20 @@ var stage = new Container(),
     renderer = autoDetectRenderer(512, 512);
 document.body.appendChild(renderer.view);
 
-var drone, destination;
+var drone, destination, machine;
 
 var widgets = [];
 
 //load an image and run the `setup` function when it's done
 loader
-  .add("widget.png")
+  .add("widget-red.png")
+  .add("widget-blue.png")
+  .add("widget-purple.png")
   .add("background.png")
   .add('drone-base-activated.png')
   .add('drone-base-inactive.png')
   .add("drone-blades.png")
+  .add("machine.png")
   .load(setup);
 
 var t = new Tink(PIXI, renderer.view);
@@ -65,11 +68,21 @@ function setup() {
     var bg = new Sprite(resources["background.png"].texture)
     stage.addChild(bg)
 
-    _.times(5, function(n) {
-      var widget = new Sprite(resources["widget.png"].texture);
+    machine = new Sprite(resources["machine.png"].texture);
+    machine.scale.set(0.25,0.25);
+    machine.anchor.set(0.5,0.5);
+    machine.x = 256;
+    machine.y = 256;
+    
+    stage.addChild(machine);
 
-      widget.x = 200 + Math.floor(Math.random()*200);
-      widget.y = 50 + Math.floor(Math.random()*400);
+
+    _.times(3, function(n) {
+      var widget = new Sprite(resources["widget-red.png"].texture);
+      widget.color = "red";
+
+      widget.x = 350 + Math.floor(Math.random()*150);
+      widget.y = 25 + Math.floor(Math.random()*100);
 
       widget.scale.set(0.75, 0.75);
       widget.circular = true;
@@ -80,6 +93,22 @@ function setup() {
       stage.addChild(widget);
     });
 
+
+    _.times(3, function(n) {
+      var widget = new Sprite(resources["widget-blue.png"].texture);
+      widget.color = "blue";
+
+      widget.x = 350 + Math.floor(Math.random()*150);
+      widget.y = 350 + Math.floor(Math.random()*100);
+
+      widget.scale.set(0.75, 0.75);
+      widget.circular = true;
+      widget.anchor.set(0.5,0.5)
+      
+      widgets.push(widget);
+
+      stage.addChild(widget);
+    });
   
     drone_base        = new Sprite(resources["drone-base-inactive.png"].texture); 
     drone_base.anchor.set(0.5, 0.5);
@@ -151,6 +180,34 @@ function gameLoop() {
     }
   }
 
+  var blue_delivered = _.find(widgets, function(e) {  
+    return (e.color == "blue" && b.hit(e, machine))
+  });
+
+  var red_delivered = _.find(widgets, function(e) {
+    return (e.color == "red" && b.hit(e, machine))
+  });
+
+  if (blue_delivered && red_delivered) {
+    stage.removeChild(blue_delivered);
+    stage.removeChild(red_delivered);
+
+    widgets = _.without(widgets, blue_delivered);
+    widgets = _.without(widgets, red_delivered);
+
+    var widget = new Sprite(resources["widget-purple.png"].texture);
+    widget.color = "purple";
+
+    widgets.push(widget);
+    widget.x = machine.x;
+    widget.y = machine.y;
+    widget.scale.set(0.75, 0.75);
+    widget.circular = true;
+    widget.anchor.set(0.5,0.5);
+
+    stage.addChild(widget);
+  };
+ 
   renderer.render(stage);
 }
 
