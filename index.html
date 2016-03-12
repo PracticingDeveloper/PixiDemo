@@ -24,9 +24,10 @@ var stage = new Container(),
     renderer = autoDetectRenderer(512, 512);
 document.body.appendChild(renderer.view);
 
-var drone, destination, machine;
+var drone, destination, machine, id;
 
 var widgets = [];
+var running = true;
 
 //load an image and run the `setup` function when it's done
 loader
@@ -62,6 +63,7 @@ space.release = function() {
   }
 }
 
+
 gameLoop();
 
 function setup() {  
@@ -75,7 +77,6 @@ function setup() {
     machine.y = 256;
     
     stage.addChild(machine);
-
 
     _.times(3, function(n) {
       var widget = new Sprite(resources["widget-red.png"].texture);
@@ -143,7 +144,7 @@ function setup() {
 
 function gameLoop() {
   //Loop this function 60 times per second
-  requestAnimationFrame(gameLoop);
+  id = requestAnimationFrame(gameLoop);
   t.update();
 
 
@@ -206,6 +207,13 @@ function gameLoop() {
 
     stage.addChild(widget);
   };
+  
+  running = !(_.all(widgets, function(e) { return e.color == "purple" } ));
+
+  if (!running) {
+    alert("You win!");
+    cancelAnimationFrame( id );
+  }
  
   renderer.render(stage);
 }
@@ -237,7 +245,7 @@ function keyboard(keyCode) {
     }
   };
 
-  //Attach event listeners
+  //Attach event listeners 
   window.addEventListener(
     "keydown", key.downHandler.bind(key), false
   );
