@@ -21,124 +21,95 @@ var Container = PIXI.Container,
 //Create a Pixi stage and renderer and add the 
 //renderer.view to the DOM
 var stage = new Container(),
-    renderer = autoDetectRenderer(512, 512);
+    renderer = autoDetectRenderer(1000,600);
+
+renderer.backgroundColor = 0xFFFFFF;
 document.body.appendChild(renderer.view);
-
-var drone, destination, machine, id;
-
-var widgets = [];
-var running = true;
-
-//load an image and run the `setup` function when it's done
-loader
-  .add("widget-red.png")
-  .add("widget-blue.png")
-  .add("widget-purple.png")
-  .add("background.png")
-  .add('drone-base-activated.png')
-  .add('drone-base-inactive.png')
-  .add("drone-blades.png")
-  .add("machine.png")
-  .load(setup);
 
 var t = new Tink(PIXI, renderer.view);
 var b = new Bump(PIXI);
 
 var pointer = t.makePointer();
 
-pointer.tap = function() {
-  destination.x = pointer.x;
-  destination.y = pointer.y;
-}
+var drawables = [];
+
+var clicked = [];
 
 var space = keyboard(32);
 
-space.release = function() {
-  drone.activated = !(drone.activated)
+var line = new PIXI.Graphics();
+var connections = [];
 
-  if (drone.activated) {
-    drone_base.texture = resources["drone-base-activated.png"].texture;
-  } else {
-    drone_base.texture = resources["drone-base-inactive.png"].texture;
-  }
+space.release = function() {
+  _.each(connections, function(e) {
+    e.sink.pull(e.source);
+  });
 }
 
-
+setup()
 gameLoop();
 
-function setup() {  
-    var bg = new Sprite(resources["background.png"].texture)
-    stage.addChild(bg)
+function setup() {
+  triangle = new PIXI.Graphics();
 
-    machine = new Sprite(resources["machine.png"].texture);
-    machine.scale.set(0.25,0.25);
-    machine.anchor.set(0.5,0.5);
-    machine.x = 256;
-    machine.y = 256;
-    
-    stage.addChild(machine);
+  triangle.draw = function() {
+    this.beginFill(0xffffff);
+    this.lineStyle(5, 0x000000);
+    this.drawPolygon([0,0, 0, 100, 75,50]);
+    this.endFill();
 
-    _.times(3, function(n) {
-      var widget = new Sprite(resources["widget-red.png"].texture);
-      widget.color = "red";
+    this.x = 200;
+    this.y = 200;
 
-      widget.x = 350 + Math.floor(Math.random()*150);
-      widget.y = 25 + Math.floor(Math.random()*100);
+    triangle.exit_point = { x: triangle.x + 75, y: triangle.y + 50 };
 
-      widget.scale.set(0.75, 0.75);
-      widget.circular = true;
-      widget.anchor.set(0.5,0.5)
-      
-      widgets.push(widget);
+  }
 
-      stage.addChild(widget);
-    });
+  triangle.tap = function() {
+    clicked.push(this);
+  };
+
+  t.makeInteractive(triangle);
 
 
-    _.times(3, function(n) {
-      var widget = new Sprite(resources["widget-blue.png"].texture);
-      widget.color = "blue";
+  drawables.push(triangle)
+  _.times(1, function(i) {
+    var diamond = new PIXI.Graphics();
 
-      widget.x = 350 + Math.floor(Math.random()*150);
-      widget.y = 350 + Math.floor(Math.random()*100);
+    diamond.draw = function(i) {
+      this.clear();
+      this.beginFill(0x000000);
+      //this.lineStyle(5, 0x000000);
+      this.drawPolygon([0,50,50,0,100,50, 50,100]);
+      this.endFill();
+    }
 
-      widget.scale.set(0.75, 0.75);
-      widget.circular = true;
-      widget.anchor.set(0.5,0.5)
-      
-      widgets.push(widget);
+    drawables.push(diamond)
 
-      stage.addChild(widget);
-    });
-  
-    drone_base        = new Sprite(resources["drone-base-inactive.png"].texture); 
-    drone_base.anchor.set(0.5, 0.5);
+    diamond.tap = function() {
+      clicked.push(this);
+    }
 
-    drone_blades      = new Sprite(resources["drone-blades.png"].texture);
-    drone = new Sprite();
+    t.makeInteractive(diamond);
 
+    diamond.x = 600;
+    diamond.y = 200;
 
+    diamond.entrance_point = { x: diamond.x, y: diamond.y + 50 };
 
-    drone_blades.anchor.set(0.5, 0.5);
+    diamond.pull = function(source) {
+      if (source.widget) {
+        this.widget = source.widget
+        source.widget = null;
+      }
+    };
 
-    drone.addChild(drone_base);
-    drone.addChild(drone_blades);
+    stage.addChild(diamond);
+  });
 
+  _.each(drawables, function(e) { e.draw() })
 
-    drone.x = 90;
-    drone.y = 90;
-    drone.circular = true;
-    drone.scale.set(0.75, 0.75);
-    drone.anchor.set(0.5,0.5);
-    drone.activated = false;
-
-    stage.addChild(drone);
-
-    destination = {};
-    destination.x = drone.x;
-    destination.y = drone.y;
-
-  renderer.render(stage);
+  stage.addChild(triangle);
 }
 
 
@@ -146,76 +117,26 @@ function gameLoop() {
   //Loop this function 60 times per second
   id = requestAnimationFrame(gameLoop);
   t.update();
+  pointer.cursor = "auto";
 
-
-  drone_blades.rotation += 0.1;
-
-  if (drone.x > destination.x) {
-    drone.x -= 1;
-  } else if (drone.x < destination.x) {
-    drone.x += 1;
-  }
-
-  if (drone.y < destination.y) {
-    drone.y += 1;
-  } else if (drone.y > destination.y) {
-    drone.y -= 1;
-  }
-
-  if (drone.activated) {
-    var caught = _.find(widgets, function(e) { return b.hit(e, drone); });
-
-    if (caught) {
-      if (caught.x < drone.x) {
-        caught.x += 1;
-      } else if (caught.x > drone.x) {
-        caught.x -= 1;
-      }
-
-      if (caught.y < drone.y) {
-        caught.y += 1;
-      } else if (caught.y > drone.y) {
-        caught.y -= 1;
-      }
-    }
-  }
-
-  var blue_delivered = _.find(widgets, function(e) {  
-    return (e.color == "blue" && b.hit(e, machine))
-  });
-
-  var red_delivered = _.find(widgets, function(e) {
-    return (e.color == "red" && b.hit(e, machine))
-  });
-
-  if (blue_delivered && red_delivered) {
-    stage.removeChild(blue_delivered);
-    stage.removeChild(red_delivered);
-
-    widgets = _.without(widgets, blue_delivered);
-    widgets = _.without(widgets, red_delivered);
-
-    var widget = new Sprite(resources["widget-purple.png"].texture);
-    widget.color = "purple";
-
-    widgets.push(widget);
-    widget.x = machine.x;
-    widget.y = machine.y;
-    widget.scale.set(0.75, 0.765);
-    widget.circular = true;
-    widget.anchor.set(0.5,0.5);
-
-    stage.addChild(widget);
-  };
-  
-  running = !(_.all(widgets, function(e) { return e.color == "purple" } ));
-
-  if (!running) {
-    alert("You win!");
-    cancelAnimationFrame( id );
-  }
- 
   renderer.render(stage);
+
+  if (clicked.length == 2) {
+    var source = clicked[0];
+    var sink   = clicked[1];
+
+    line = new PIXI.Graphics();
+
+    line.visible = true;
+    line.lineStyle(4, 0x999999);
+    line.moveTo(source.exit_point.x, source.exit_point.y);
+    line.lineTo(sink.entrance_point.x, sink.entrance_point.y);
+
+    stage.addChild(line);
+
+    clicked = [];
+    connections.push({source: source, sink: sink});
+  }
 }
 
 function keyboard(keyCode) {

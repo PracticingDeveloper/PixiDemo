@@ -1,0 +1,262 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Displaying the canvas</title>
+<body>
+<script src="vendor/pixi.min.js"></script>
+<script src="vendor/tink.js"></script>
+<script src="vendor/underscore-min.js"></script>
+<script src="vendor/bump.js"></script>
+
+<script>
+
+//Aliases
+var Container = PIXI.Container,
+    autoDetectRenderer = PIXI.autoDetectRenderer,
+    loader = PIXI.loader,
+    resources = PIXI.loader.resources,
+    TextureCache = PIXI.utils.TextureCache,
+    Texture = PIXI.Texture,
+    Sprite = PIXI.Sprite,
+    Graphics = PIXI.Graphics;
+//Create a Pixi stage and renderer and add the 
+//renderer.view to the DOM
+var stage = new Container(),
+    renderer = autoDetectRenderer(1000,600);
+document.body.appendChild(renderer.view);
+
+var drone, destination, machine, id;
+
+var widgets = [];
+var running = true;
+
+//load an image and run the `setup` function when it's done
+loader
+  .add("widget-red.png")
+  .add("widget-blue.png")
+  .add("widget-purple.png")
+  .add("background.png")
+  .add('drone-base-activated.png')
+  .add('drone-base-inactive.png')
+  .add("drone-blades.png")
+  .add("machine.png")
+  .load(setup);
+
+var t = new Tink(PIXI, renderer.view);
+var b = new Bump(PIXI);
+
+var pointer = t.makePointer();
+
+pointer.tap = function() {
+  destination.x = pointer.x;
+  destination.y = pointer.y;
+}
+
+var space = keyboard(32);
+
+space.release = function() {
+  drone.activated = !(drone.activated)
+
+  if (drone.activated) {
+    drone_base.texture = resources["drone-base-activated.png"].texture;
+  } else {
+    drone_base.texture = resources["drone-base-inactive.png"].texture;
+  }
+}
+
+
+gameLoop();
+
+function setup() {  
+    var bg = new Sprite(resources["background.png"].texture)
+    stage.addChild(bg)
+
+    machine = new Sprite(resources["machine.png"].texture);
+    machine.scale.set(0.25,0.25);
+    machine.anchor.set(0.5,0.5);
+    machine.x = 256;
+    machine.y = 256;
+    
+    stage.addChild(machine);
+
+    _.times(3, function(n) {
+      var widget = new Sprite(resources["widget-red.png"].texture);
+      widget.color = "red";
+
+      widget.x = 350 + Math.floor(Math.random()*150);
+      widget.y = 25 + Math.floor(Math.random()*100);
+
+      widget.scale.set(0.75, 0.75);
+      widget.circular = true;
+      widget.anchor.set(0.5,0.5)
+      
+      widgets.push(widget);
+
+      stage.addChild(widget);
+    });
+
+
+    _.times(3, function(n) {
+      var widget = new Sprite(resources["widget-blue.png"].texture);
+      widget.color = "blue";
+
+      widget.x = 350 + Math.floor(Math.random()*150);
+      widget.y = 350 + Math.floor(Math.random()*100);
+
+      widget.scale.set(0.75, 0.75);
+      widget.circular = true;
+      widget.anchor.set(0.5,0.5)
+      
+      widgets.push(widget);
+
+      stage.addChild(widget);
+    });
+  
+    drone_base        = new Sprite(resources["drone-base-inactive.png"].texture); 
+    drone_base.anchor.set(0.5, 0.5);
+
+    drone_blades      = new Sprite(resources["drone-blades.png"].texture);
+    drone = new Sprite();
+
+
+
+    drone_blades.anchor.set(0.5, 0.5);
+
+    drone.addChild(drone_base);
+    drone.addChild(drone_blades);
+
+
+    drone.x = 90;
+    drone.y = 90;
+    drone.circular = true;
+    drone.scale.set(0.75, 0.75);
+    drone.anchor.set(0.5,0.5);
+    drone.activated = false;
+
+    stage.addChild(drone);
+
+    destination = {};
+    destination.x = drone.x;
+    destination.y = drone.y;
+
+  renderer.render(stage);
+}
+
+
+function gameLoop() {
+  //Loop this function 60 times per second
+  id = requestAnimationFrame(gameLoop);
+  t.update();
+
+
+  drone_blades.rotation += 0.1;
+
+  if (drone.x - destination.x > 3) {
+    drone.x -= 3;
+  } else if (drone.x - destination.x < -3) {
+    drone.x += 3;
+  } else {
+    drone.x = destination.x;
+  }
+
+  if (drone.y - destination.y > 3) {
+    drone.y -= 3;
+  } else if (drone.y - destination.y < -3) {
+    drone.y += 3;
+  } else {
+    drone.y = destination.y;
+  }
+
+  if (drone.activated) {
+    var caught = _.find(widgets, function(e) { return b.hit(e, drone); });
+
+    if (caught) {
+      if (caught.x < drone.x) {
+        caught.x += 3;
+      } else if (caught.x > drone.x) {
+        caught.x -= 3;
+      }
+
+      if (caught.y < drone.y) {
+        caught.y += 3;
+      } else if (caught.y > drone.y) {
+        caught.y -= 3;
+      }
+    }
+  }
+
+  var blue_delivered = _.find(widgets, function(e) {  
+    return (e.color == "blue" && b.hit(e, machine))
+  });
+
+  var red_delivered = _.find(widgets, function(e) {
+    return (e.color == "red" && b.hit(e, machine))
+  });
+
+  if (blue_delivered && red_delivered) {
+    stage.removeChild(blue_delivered);
+    stage.removeChild(red_delivered);
+
+    widgets = _.without(widgets, blue_delivered);
+    widgets = _.without(widgets, red_delivered);
+
+    var widget = new Sprite(resources["widget-purple.png"].texture);
+    widget.color = "purple";
+
+    widgets.push(widget);
+    widget.x = machine.x;
+    widget.y = machine.y;
+    widget.scale.set(0.75, 0.765);
+    widget.circular = true;
+    widget.anchor.set(0.5,0.5);
+
+    stage.addChild(widget);
+  };
+  
+  running = !(_.all(widgets, function(e) { return e.color == "purple" } ));
+
+  if (!running) {
+    alert("You win!");
+    cancelAnimationFrame( id );
+  }
+ 
+  renderer.render(stage);
+}
+
+function keyboard(keyCode) {
+  var key = {};
+  key.code = keyCode;
+  key.isDown = false;
+  key.isUp = true;
+  key.press = undefined;
+  key.release = undefined;
+  //The `downHandler`
+  key.downHandler = function(event) {
+    if (event.keyCode === key.code) {
+      if (key.isUp && key.press) key.press();
+      key.isDown = true;
+      key.isUp = false;
+      event.preventDefault();
+    }
+  };
+
+  //The `upHandler`
+  key.upHandler = function(event) {
+    if (event.keyCode === key.code) {
+      if (key.isDown && key.release) key.release();
+      key.isDown = false;
+      key.isUp = true;
+      event.preventDefault();
+    }
+  };
+
+  //Attach event listeners 
+  window.addEventListener(
+    "keydown", key.downHandler.bind(key), false
+  );
+  window.addEventListener(
+    "keyup", key.upHandler.bind(key), false
+  );
+  return key;
+}
+</script>
+</body>
