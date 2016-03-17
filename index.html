@@ -6,7 +6,7 @@
 <script src="vendor/tink.js"></script>
 <script src="vendor/underscore-min.js"></script>
 <script src="vendor/bump.js"></script>
-
+<script src="vendor/keyboard.js"></script>
 <script>
 
 //Aliases
@@ -31,7 +31,7 @@ var b = new Bump(PIXI);
 
 var pointer = t.makePointer();
 
-var drawables = [];
+var stations = [];
 
 var clicked = [];
 
@@ -39,142 +39,22 @@ var clicked = [];
 var space = keyboard(32);
 
 var line = new PIXI.Graphics();
-var connections = [];
+var terminals;
 
 space.release = function() {
-  _.each(connections, function(e) {
-    e.sink.pull(e.source);
-  });
+  _.each(terminals, function(e) { e.pull(); });
 }
 
 setup()
 gameLoop();
 
 function setup() {
-  var crate = new PIXI.Graphics();
-
-  stage.addChild(crate);
-
-  crate.pull = function(upstream) {
-    if (this.widget) {
-      stage.removeChild(this.widget);
-      this.widget = null;
-    }
-
-    upstream.pull(function(w) {
-      this.widget = w
-      this.widget.x = this.x + 50;
-      this.widget.y = this.y + 50;
-    });
-  };
-
-  crate.tap = function() {
-    clicked.push(this);
-  }
-
-  crate.draw = function() {
-    this.beginFill(0xffffff);
-    this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,0,0,100,100,100,100,0]);
-    this.endFill();
-
-    this.x = 475;
-    this.y = 200;
-
-    this.entrance_point = {x: crate.x, y: this.y + 50};
-    this.exit_point     = {x: crate.x + 100, y: this.y + 50};
-  }
-
-  crate.draw();
-
-  t.makeInteractive(crate);
+  buildCrates();
+  buildTerminal();   // FIXME: This shouldn't be order dependent, but currently needs to be called before generator.
+  buildGenerator();
 
 
-  triangle = new PIXI.Graphics();
-  stage.addChild(triangle);
-
-  triangle.draw = function() {
-    this.beginFill(0xffffff);
-    this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,0, 0, 100, 75,50]);
-    this.endFill();
-    this.x = 200;
-    this.y = 200;
-
-
-    this.exit_point = { x: triangle.x + 75, y: triangle.y + 50 };
-
-    this.pull();
-  }
-
-  triangle.tap = function() {
-    clicked.push(this);
-  };
-
-  triangle.pull = function(callback) {
-    if (this.widget) {
-      callback(this.widget);
-      this.widget = null;
-    } else {
-      this.widget = new PIXI.Graphics();
-
-      this.widget.beginFill(0xff0000);
-      this.widget.lineStyle(5, 0x000000);
-      this.widget.drawCircle(0,0,15);
-
-      this.widget.x = this.x + 25;
-      this.widget.y = this.y + 50;
-
-      stage.addChild(this.widget);
-    }
- }
-
-  t.makeInteractive(triangle);
-
-
-  drawables.push(triangle)
-  _.times(1, function(i) {
-    var diamond = new PIXI.Graphics();
-
-    diamond.draw = function(i) {
-      this.clear();
-      this.beginFill(0x000000);
-      //this.lineStyle(5, 0x000000);
-      this.drawPolygon([0,50,50,0,100,50, 50,100]);
-      this.endFill();
-    }
-
-    drawables.push(diamond)
-
-    diamond.tap = function() {
-      clicked.push(this);
-    }
-
-    t.makeInteractive(diamond);
-
-    diamond.x = 800;
-    diamond.y = 200;
-
-    diamond.entrance_point = { x: diamond.x, y: diamond.y + 50 };
-
-    diamond.pull = function(upstream) {
-      if (this.widget) {
-        stage.removeChild(diamond.widget);
-        diamond.widget = null;
-      }
-
-      upstream.pull(function(w) {
-        diamond.widget = w
-        diamond.widget.x = diamond.x + 50;
-        diamond.widget.y = diamond.y + 50;
-      });
-    };
-
-    stage.addChild(diamond);
-  });
-
-  _.each(drawables, function(e) { e.draw() })
-
+  _.each(stations, function(e) { e.draw() })  
 }
 
 
@@ -190,6 +70,9 @@ function gameLoop() {
     var source = clicked[0];
     var sink   = clicked[1];
 
+    source.sink = sink;
+    sink.source = source;
+
     line = new PIXI.Graphics();
 
     line.visible = true;
@@ -200,45 +83,146 @@ function gameLoop() {
     stage.addChild(line);
 
     clicked = [];
-    connections.push({source: source, sink: sink});
   }
+
+  terminals = _.select(stations, function(e) { return !(e.sink)});
 }
 
-function keyboard(keyCode) {
-  var key = {};
-  key.code = keyCode;
-  key.isDown = false;
-  key.isUp = true;
-  key.press = undefined;
-  key.release = undefined;
-  //The `downHandler`
-  key.downHandler = function(event) {
-    if (event.keyCode === key.code) {
-      if (key.isUp && key.press) key.press();
-      key.isDown = true;
-      key.isUp = false;
-      event.preventDefault();
-    }
-  };
+function buildCrates() {
+  _.times(3, function(i) {
+    var crate = new PIXI.Graphics();
+    
+    t.makeInteractive(crate);
+    stations.push(crate);
 
-  //The `upHandler`
-  key.upHandler = function(event) {
-    if (event.keyCode === key.code) {
-      if (key.isDown && key.release) key.release();
-      key.isDown = false;
-      key.isUp = true;
-      event.preventDefault();
-    }
-  };
+    crate.x = 275 + i*200;
+    crate.y = 200;
 
-  //Attach event listeners 
-  window.addEventListener(
-    "keydown", key.downHandler.bind(key), false
-  );
-  window.addEventListener(
-    "keyup", key.upHandler.bind(key), false
-  );
-  return key;
+    crate.entrance_point = {x: crate.x, y: crate.y + 50};
+    crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
+
+    crate.tap = function() { clicked.push(this); }
+
+    crate.draw = function() {
+      this.beginFill(0xffffff);
+      this.lineStyle(5, 0x000000);
+      this.drawPolygon([0,0,0,100,100,100,100,0]);
+      this.endFill();
+    }
+
+    crate.receive = function(widget) {
+      widget.x = this.x + 50;
+      widget.y = this.y + 50;
+
+      this.widget   = widget;
+    }
+
+    crate.pull = function() {
+      if(this.widget) {
+        this.sink.receive(this.widget)
+        this.widget = null;
+      } else if (this.source && !this.widget) {
+        this.source.pull();
+      }
+    };
+    
+    stage.addChild(crate);
+  });
 }
+
+function buildTerminal() {  
+  var terminal = new PIXI.Graphics();
+  t.makeInteractive(terminal);
+  
+  terminal.x = 850;
+  terminal.y = 200;
+
+  terminal.entrance_point = {x: terminal.x, y: terminal.y + 50};
+  terminal.exit_point     = {x: terminal.x + 75, y: terminal.y + 50};
+
+  terminal.tap = function() { clicked.push(this); }
+
+  terminal.draw = function() {
+    this.beginFill(0x333333);
+    this.lineStyle(5, 0x000000);
+    this.drawPolygon([0,50,50,0,100,50,50,100]);
+    this.endFill();
+  }
+
+  terminal.receive = function(widget) {
+    widget.x = this.x + 50;
+    widget.y = this.y + 50;
+
+    this.widget   = widget;
+  }
+
+  terminal.pull = function() {
+    if(this.widget) {
+      stage.removeChild(this.widget);
+      this.widget = null;
+    } else if (this.source && !this.widget) {
+      this.source.pull();
+    }
+  };
+  
+  terminal.draw();
+  stage.addChild(terminal);
+  stations.push(terminal);
+}
+
+
+function buildGenerator() {  
+  var generator = new PIXI.Graphics();
+  t.makeInteractive(generator);
+  
+  
+  generator.x = 100;
+  generator.y = 200;
+
+  generator.entrance_point = {x: generator.x, y: generator.y + 50};
+  generator.exit_point     = {x: generator.x + 75, y: generator.y + 50};
+
+  generator.tap = function() { clicked.push(this); }
+
+  generator.draw = function() {
+    this.beginFill(0xcccccc);
+    this.lineStyle(5, 0x000000);
+    this.drawPolygon([0,0,0,100,75,50]);
+    this.endFill();
+  }
+
+  generator.receive = function(widget) {
+    widget.x = this.x + 25;
+    widget.y = this.y + 50;
+
+    this.widget   = widget;
+  }
+
+  generator.pull = function() {
+    if(this.widget) {
+      this.sink.receive(this.widget)
+      this.widget = null;
+    } else {
+      this.receive(newWidget());
+    }
+  };
+  
+  generator.draw();
+  stage.addChild(generator);
+  stations.push(generator);
+
+  generator.receive(newWidget());
+}
+
+function newWidget() {
+  var widget = new PIXI.Graphics();
+  stage.addChild(widget);
+
+  widget.beginFill(0xff0000);
+  widget.lineStyle(5, 0x000000);
+  widget.drawCircle(0,0,15);
+
+  return widget;
+};
 </script>
 </body>
