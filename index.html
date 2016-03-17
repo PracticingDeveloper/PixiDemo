@@ -208,13 +208,10 @@ function buildGenerator() {
   }
 
   generator.pull = function() {
-    if(this.widget && !this.sink.moved) {
-      this.sink.receive(this.widget)
-      this.widget = null;
-    } else {
-      this.receive(newWidget());
-      this.moved   = true;
-    }
+    this.sink.receive(this.widget);
+    this.widget = null;
+    this.receive(newWidget());
+    this.moved   = true;
   };
   
   generator.draw();
