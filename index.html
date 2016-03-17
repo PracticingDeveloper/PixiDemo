@@ -39,10 +39,17 @@ var clicked = [];
 var space = keyboard(32);
 
 var line = new PIXI.Graphics();
-var terminals;
 
 space.release = function() {
-  _.each(terminals, function(e) { e.pull(); });
+  var sorted = _.sortBy(stations, function(e) { return -e.x; });
+
+  _.each(sorted, function(e) { 
+    if ((!e.widget || e.terminal) && e.source) {
+      e.pull();
+    }
+  });
+
+  _.each(stations, function(e) { e.moved = false; })
 }
 
 setup()
@@ -84,8 +91,6 @@ function gameLoop() {
 
     clicked = [];
   }
-
-  terminals = _.select(stations, function(e) { return !(e.sink)});
 }
 
 function buildCrates() {
@@ -118,11 +123,12 @@ function buildCrates() {
     }
 
     crate.pull = function() {
-      if(this.widget) {
+      if(this.widget && !this.sink.moved) {
         this.sink.receive(this.widget)
         this.widget = null;
       } else if (this.source && !this.widget) {
         this.source.pull();
+        this.moved = true;
       }
     };
     
@@ -139,6 +145,8 @@ function buildTerminal() {
 
   terminal.entrance_point = {x: terminal.x, y: terminal.y + 50};
   terminal.exit_point     = {x: terminal.x + 75, y: terminal.y + 50};
+
+  terminal.terminal = true;
 
   terminal.tap = function() { clicked.push(this); }
 
@@ -162,6 +170,7 @@ function buildTerminal() {
       this.widget = null;
     } else if (this.source && !this.widget) {
       this.source.pull();
+      this.moved = true;
     }
   };
   
@@ -199,11 +208,12 @@ function buildGenerator() {
   }
 
   generator.pull = function() {
-    if(this.widget) {
+    if(this.widget && !this.sink.moved) {
       this.sink.receive(this.widget)
       this.widget = null;
     } else {
       this.receive(newWidget());
+      this.moved   = true;
     }
   };
   
