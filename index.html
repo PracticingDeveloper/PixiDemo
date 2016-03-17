@@ -35,6 +35,7 @@ var drawables = [];
 
 var clicked = [];
 
+
 var space = keyboard(32);
 
 var line = new PIXI.Graphics();
@@ -50,24 +51,83 @@ setup()
 gameLoop();
 
 function setup() {
+  var crate = new PIXI.Graphics();
+
+  stage.addChild(crate);
+
+  crate.pull = function(upstream) {
+    if (this.widget) {
+      stage.removeChild(this.widget);
+      this.widget = null;
+    }
+
+    upstream.pull(function(w) {
+      this.widget = w
+      this.widget.x = this.x + 50;
+      this.widget.y = this.y + 50;
+    });
+  };
+
+  crate.tap = function() {
+    clicked.push(this);
+  }
+
+  crate.draw = function() {
+    this.beginFill(0xffffff);
+    this.lineStyle(5, 0x000000);
+    this.drawPolygon([0,0,0,100,100,100,100,0]);
+    this.endFill();
+
+    this.x = 475;
+    this.y = 200;
+
+    this.entrance_point = {x: crate.x, y: this.y + 50};
+    this.exit_point     = {x: crate.x + 100, y: this.y + 50};
+  }
+
+  crate.draw();
+
+  t.makeInteractive(crate);
+
+
   triangle = new PIXI.Graphics();
+  stage.addChild(triangle);
 
   triangle.draw = function() {
     this.beginFill(0xffffff);
     this.lineStyle(5, 0x000000);
     this.drawPolygon([0,0, 0, 100, 75,50]);
     this.endFill();
-
     this.x = 200;
     this.y = 200;
 
-    triangle.exit_point = { x: triangle.x + 75, y: triangle.y + 50 };
 
+    this.exit_point = { x: triangle.x + 75, y: triangle.y + 50 };
+
+    this.pull();
   }
 
   triangle.tap = function() {
     clicked.push(this);
   };
+
+  triangle.pull = function(callback) {
+    if (this.widget) {
+      callback(this.widget);
+      this.widget = null;
+    } else {
+      this.widget = new PIXI.Graphics();
+
+      this.widget.beginFill(0xff0000);
+      this.widget.lineStyle(5, 0x000000);
+      this.widget.drawCircle(0,0,15);
+
+      this.widget.x = this.x + 25;
+      this.widget.y = this.y + 50;
+
+      stage.addChild(this.widget);
+    }
+ }
 
   t.makeInteractive(triangle);
 
@@ -92,16 +152,22 @@ function setup() {
 
     t.makeInteractive(diamond);
 
-    diamond.x = 600;
+    diamond.x = 800;
     diamond.y = 200;
 
     diamond.entrance_point = { x: diamond.x, y: diamond.y + 50 };
 
-    diamond.pull = function(source) {
-      if (source.widget) {
-        this.widget = source.widget
-        source.widget = null;
+    diamond.pull = function(upstream) {
+      if (this.widget) {
+        stage.removeChild(diamond.widget);
+        diamond.widget = null;
       }
+
+      upstream.pull(function(w) {
+        diamond.widget = w
+        diamond.widget.x = diamond.x + 50;
+        diamond.widget.y = diamond.y + 50;
+      });
     };
 
     stage.addChild(diamond);
@@ -109,7 +175,6 @@ function setup() {
 
   _.each(drawables, function(e) { e.draw() })
 
-  stage.addChild(triangle);
 }
 
 
