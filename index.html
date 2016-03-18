@@ -13,6 +13,7 @@
 <script src="lib/worker.js"></script>
 <script src="lib/crate.js"></script>
 <script src="lib/order.js"></script>
+<script src="lib/machine.js"></script>
 <script>
 
 //Aliases
@@ -49,6 +50,7 @@ gameLoop();
 function setup() {
   buildRedSupplyChain();
   buildBlueSupplyChain();
+  buildMachine(700,250);
 }
 
 function buildRedSupplyChain() {
