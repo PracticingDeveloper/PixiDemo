@@ -50,7 +50,26 @@ gameLoop();
 function setup() {
   buildRedSupplyChain();
   buildBlueSupplyChain();
-  buildMachine(700,250);
+  buildMachineSupplyChain();
+}
+
+function buildMachineSupplyChain() {
+  var machine = buildMachine(700,250);
+  var crate   = buildCrate(850,190);
+  var order   = buildOrder(machine, crate);
+
+  t.makeInteractive(crate);
+
+  crate.tap = function() {
+    w = crate.pop();
+
+    if (w) {
+      stage.removeChild(w)
+      order.submit();
+    }
+  }
+
+  _.times(3, function() { order.submit(); });
 }
 
 function buildRedSupplyChain() {
@@ -59,16 +78,6 @@ function buildRedSupplyChain() {
 
   var order    = buildOrder(supplier, crate);
   
-  t.makeInteractive(crate);
-
-  crate.tap = function() {
-    w = this.pop();
-
-    if (w) {
-      stage.removeChild(w)
-      order.submit();
-    }
-  }
 
   _.times(3, function() { order.submit(); });
 }
