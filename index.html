@@ -7,6 +7,12 @@
 <script src="vendor/underscore-min.js"></script>
 <script src="vendor/bump.js"></script>
 <script src="vendor/keyboard.js"></script>
+
+<script src="lib/widget.js"></script>
+<script src="lib/supplier.js"></script>
+<script src="lib/worker.js"></script>
+<script src="lib/crate.js"></script>
+<script src="lib/order.js"></script>
 <script>
 
 //Aliases
@@ -92,156 +98,5 @@ function gameLoop() {
   
   renderer.render(stage);
 }
-
-function buildOrder(src, dest) {
-  var o = { source: src, destination: dest };
-
-  o.submit = function() {
-    this.source.produce(this.fulfill)
-  } 
-
-  o.fulfill = function(widget) {
-    o.destination.push(widget);
-  }
-
-  o.draw = function() {
-    var line = new PIXI.Graphics();
-
-    line.lineStyle(4, 0x333333, 1);
-    line.moveTo(this.source.exit_point.x, this.source.exit_point.y);
-    line.lineTo(this.destination.entrance_point.x, this.destination.entrance_point.y);
-    stage.addChild(line);
-  }
-
-  o.draw();
-
-  return o;
-}
-
-function buildCrate(x,y) {
-  var crate = new PIXI.Graphics();
-
-  crate.x = x;
-  crate.y = y;
-
-  crate.entrance_point = {x: x, y: y+90};
-
-  crate.contents = [];
-
-  //crate.entrance_point = {x: crate.x, y: crate.y + 50};
-  //crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
-
-  //crate.tap = function() { clicked.push(this); }
-
-  crate.draw = function() {
-    this.beginFill(0xffffff);
-    this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,0,0,180,60,180,60,0]);
-    this.endFill();
-  }
-
-  crate.push = function(widget) {
-    this.contents.push(widget);
-
-    widget.x = this.x + 30;
-    widget.y = this.y + (4 - this.contents.length)*45;
-  }
-
-  crate.pop = function() {
-    return this.contents.pop();
-  }
-
-  crate.isFull = function() {
-    return this.contents.length == 3;
-  }
-
-  crate.draw();
-
-  stage.addChild(crate);
-
-  return crate;
-}
-
-function buildWorker() {
-  var worker = {};
-
-  worker.queue = [];
-  worker.delay = 1000;
-
-  worker.startJob = function() {
-    setTimeout(function() {
-      var job = worker.queue.pop();
-
-      job();
-
-      if (worker.queue.length > 0) {
-        worker.startJob();
-      }
-    }, worker.delay);
-  }
-
-  worker.push = function(job) {
-    worker.queue.push(job);
-
-    if (worker.queue.length == 1) {
-      worker.startJob();
-    }
-  }
-
-  return worker;
-}
-
-function buildSupplier(color, x,y) {
-  var supplier = new PIXI.Graphics();
-
-  supplier.x = x;
-  supplier.y = y;
-  supplier.color = color;
-
-  supplier.exit_point = {x: x + 45, y: y + 30};
-  supplier.worker = buildWorker();
-
-  supplier.draw = function() {
-    if (color == "red") {
-      this.beginFill(0xcc6666);
-    } else {
-      this.beginFill(0x6666cc);
-    }
-
-    this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,60,45,30,0,0]);
-    this.endFill();
-  }
-
-  supplier.produce = function(deliver) {
-    this.worker.push(function() {
-      deliver(newWidget(supplier.color));
-    })
-  }
-
-  stage.addChild(supplier);
-  supplier.draw();
-
-  return supplier;
-}
-
-
-function newWidget(color) {
-  var widget = new PIXI.Graphics();
-  widget.color = color;
-  
-  stage.addChild(widget);
-
-  if (color == "red") {
-    widget.beginFill(0xff0000);
-  } else {
-    widget.beginFill(0x0000ff);
-  }
-
-  widget.lineStyle(5, 0x000000);
-  widget.drawCircle(0,0,15);
-
-  return widget;
-};
 </script>
 </body>
