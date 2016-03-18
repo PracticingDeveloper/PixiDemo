@@ -44,9 +44,13 @@ gameLoop();
 
 function setup() {
   supplier = buildSupplier(200,200);
-  crate    = buildCrate(510,200);
+  crate    = buildCrate(510,140);
 
   order    = buildOrder(supplier, crate);
+
+ _.times(3, function() {
+    order.submit();
+  });
 }
 
 function gameLoop() {
@@ -87,7 +91,17 @@ function buildCrate(x,y) {
   crate.x = x;
   crate.y = y;
 
-  crate.entrance_point = {x: x, y: y+30};
+  crate.entrance_point = {x: x, y: y+90};
+
+  crate.contents = [];
+
+  t.makeInteractive(crate);
+
+  crate.tap = function() {
+    stage.removeChild(this.pop())
+
+    order.submit();
+  }
 
   //crate.entrance_point = {x: crate.x, y: crate.y + 50};
   //crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
@@ -97,27 +111,23 @@ function buildCrate(x,y) {
   crate.draw = function() {
     this.beginFill(0xffffff);
     this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,0,0,60,60,60,60,0]);
+    this.drawPolygon([0,0,0,180,60,180,60,0]);
     this.endFill();
   }
 
   crate.push = function(widget) {
-    this.widget = widget;
+    this.contents.push(widget);
 
-    this.widget.x = this.x + 30;
-    this.widget.y = this.y + 30;
+    widget.x = this.x + 30;
+    widget.y = this.y + (4 - this.contents.length)*45;
   }
 
   crate.pop = function() {
-    var widget = this.widget;
-
-    this.widget = null;
-
-    return widget;
+    return this.contents.pop();
   }
 
   crate.isFull = function() {
-    return !(!(this.widget));
+    return this.contents.length == 3;
   }
 
   crate.draw();
@@ -143,7 +153,7 @@ function buildSupplier(x,y) {
   }
 
   supplier.produce = function(deliver) {
-    deliver(newWidget())
+    setTimeout(function() { deliver(newWidget()) }, 1000);
   }
 
   stage.addChild(supplier);
