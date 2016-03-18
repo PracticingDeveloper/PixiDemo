@@ -36,7 +36,7 @@ var space = keyboard(32);
 var supplier, crate, order;
 
 space.release = function() {
-  order.submit();
+  //order.submit();
 }
 
 setup()
@@ -98,9 +98,12 @@ function buildCrate(x,y) {
   t.makeInteractive(crate);
 
   crate.tap = function() {
-    stage.removeChild(this.pop())
+    w = this.pop();
 
-    order.submit();
+    if (w) {
+      stage.removeChild(w)
+      order.submit();
+    }
   }
 
   //crate.entrance_point = {x: crate.x, y: crate.y + 50};
@@ -144,16 +147,32 @@ function buildSupplier(x,y) {
   supplier.y = y;
 
   supplier.exit_point = {x: x + 45, y: y + 30};
+  supplier.queue = [];
 
   supplier.draw = function() {
-    this.beginFill(0xff9999);
+    this.beginFill(0xcc66cc);
     this.lineStyle(5, 0x000000);
     this.drawPolygon([0,60,45,30,0,0]);
     this.endFill();
   }
 
+  supplier.start_job = function() {
+    setTimeout(function() {
+      var deliver = supplier.queue.pop();
+
+      deliver(newWidget());
+      if (supplier.queue.length > 0) {
+        supplier.start_job();
+      }
+    }, 1000);
+  }
+
   supplier.produce = function(deliver) {
-    setTimeout(function() { deliver(newWidget()) }, 1000);
+    supplier.queue.push(deliver);
+
+    if (supplier.queue.length == 1) {
+      supplier.start_job();
+    }
   }
 
   stage.addChild(supplier);
@@ -167,7 +186,7 @@ function newWidget() {
   var widget = new PIXI.Graphics();
   stage.addChild(widget);
 
-  widget.beginFill(0xff0000);
+  widget.beginFill(0xff00ff);
   widget.lineStyle(5, 0x000000);
   widget.drawCircle(0,0,15  );
 
