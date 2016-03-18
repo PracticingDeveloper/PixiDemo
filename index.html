@@ -31,195 +31,127 @@ var b = new Bump(PIXI);
 
 var pointer = t.makePointer();
 
-var stations = [];
-
-var clicked = [];
-
-
 var space = keyboard(32);
 
-var line = new PIXI.Graphics();
+var supplier, crate, order;
 
 space.release = function() {
-  var sorted = _.sortBy(stations, function(e) { return -e.x; });
-
-  _.each(sorted, function(e) { 
-    if ((!e.widget || e.terminal) && e.source) {
-      e.pull();
-    }
-  });
-
-  _.each(stations, function(e) { e.moved = false; })
+  order.submit();
 }
 
 setup()
 gameLoop();
 
 function setup() {
-  buildCrates();
-  buildTerminal();   // FIXME: This shouldn't be order dependent, but currently needs to be called before generator.
-  buildGenerator();
+  supplier = buildSupplier(200,200);
+  crate    = buildCrate(510,200);
 
-
-  _.each(stations, function(e) { e.draw() })  
+  order    = buildOrder(supplier, crate);
 }
-
 
 function gameLoop() {
-  //Loop this function 60 times per second
   id = requestAnimationFrame(gameLoop);
   t.update();
-  pointer.cursor = "auto";
-
+  
   renderer.render(stage);
+}
 
-  if (clicked.length == 2) {
-    var source = clicked[0];
-    var sink   = clicked[1];
+function buildOrder(src, dest) {
+  var o = { source: src, destination: dest };
 
-    source.sink = sink;
-    sink.source = source;
+  o.submit = function() {
+    this.source.produce(this.fulfill)
+  } 
 
-    line = new PIXI.Graphics();
+  o.fulfill = function(widget) {
+    o.destination.push(widget);
+  }
 
-    line.visible = true;
-    line.lineStyle(4, 0x999999);
-    line.moveTo(source.exit_point.x, source.exit_point.y);
-    line.lineTo(sink.entrance_point.x, sink.entrance_point.y);
+  o.draw = function() {
+    var line = new PIXI.Graphics();
 
+    line.lineStyle(4, 0x333333, 1);
+    line.moveTo(this.source.exit_point.x, this.source.exit_point.y);
+    line.lineTo(this.destination.entrance_point.x, this.destination.entrance_point.y);
     stage.addChild(line);
-
-    clicked = [];
   }
+
+  o.draw();
+
+  return o;
 }
 
-function buildCrates() {
-  _.times(3, function(i) {
-    var crate = new PIXI.Graphics();
-    
-    t.makeInteractive(crate);
-    stations.push(crate);
+function buildCrate(x,y) {
+  var crate = new PIXI.Graphics();
 
-    crate.x = 275 + i*200;
-    crate.y = 200;
+  crate.x = x;
+  crate.y = y;
 
-    crate.entrance_point = {x: crate.x, y: crate.y + 50};
-    crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
+  crate.entrance_point = {x: x, y: y+30};
 
-    crate.tap = function() { clicked.push(this); }
+  //crate.entrance_point = {x: crate.x, y: crate.y + 50};
+  //crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
 
-    crate.draw = function() {
-      this.beginFill(0xffffff);
-      this.lineStyle(5, 0x000000);
-      this.drawPolygon([0,0,0,100,100,100,100,0]);
-      this.endFill();
-    }
+  //crate.tap = function() { clicked.push(this); }
 
-    crate.receive = function(widget) {
-      widget.x = this.x + 50;
-      widget.y = this.y + 50;
-
-      this.widget   = widget;
-    }
-
-    crate.pull = function() {
-      if(this.widget && !this.sink.moved) {
-        this.sink.receive(this.widget)
-        this.widget = null;
-      } else if (this.source && !this.widget) {
-        this.source.pull();
-        this.moved = true;
-      }
-    };
-    
-    stage.addChild(crate);
-  });
-}
-
-function buildTerminal() {  
-  var terminal = new PIXI.Graphics();
-  t.makeInteractive(terminal);
-  
-  terminal.x = 850;
-  terminal.y = 200;
-
-  terminal.entrance_point = {x: terminal.x, y: terminal.y + 50};
-  terminal.exit_point     = {x: terminal.x + 75, y: terminal.y + 50};
-
-  terminal.terminal = true;
-
-  terminal.tap = function() { clicked.push(this); }
-
-  terminal.draw = function() {
-    this.beginFill(0x333333);
+  crate.draw = function() {
+    this.beginFill(0xffffff);
     this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,50,50,0,100,50,50,100]);
+    this.drawPolygon([0,0,0,60,60,60,60,0]);
     this.endFill();
   }
 
-  terminal.receive = function(widget) {
-    widget.x = this.x + 50;
-    widget.y = this.y + 50;
+  crate.push = function(widget) {
+    this.widget = widget;
 
-    this.widget   = widget;
+    this.widget.x = this.x + 30;
+    this.widget.y = this.y + 30;
   }
 
-  terminal.pull = function() {
-    if(this.widget) {
-      stage.removeChild(this.widget);
-      this.widget = null;
-    } else if (this.source && !this.widget) {
-      this.source.pull();
-      this.moved = true;
-    }
-  };
-  
-  terminal.draw();
-  stage.addChild(terminal);
-  stations.push(terminal);
-}
+  crate.pop = function() {
+    var widget = this.widget;
 
-
-function buildGenerator() {  
-  var generator = new PIXI.Graphics();
-  t.makeInteractive(generator);
-  
-  
-  generator.x = 100;
-  generator.y = 200;
-
-  generator.entrance_point = {x: generator.x, y: generator.y + 50};
-  generator.exit_point     = {x: generator.x + 75, y: generator.y + 50};
-
-  generator.tap = function() { clicked.push(this); }
-
-  generator.draw = function() {
-    this.beginFill(0xcccccc);
-    this.lineStyle(5, 0x000000);
-    this.drawPolygon([0,0,0,100,75,50]);
-    this.endFill();
-  }
-
-  generator.receive = function(widget) {
-    widget.x = this.x + 25;
-    widget.y = this.y + 50;
-
-    this.widget   = widget;
-  }
-
-  generator.pull = function() {
-    this.sink.receive(this.widget);
     this.widget = null;
-    this.receive(newWidget());
-    this.moved   = true;
-  };
-  
-  generator.draw();
-  stage.addChild(generator);
-  stations.push(generator);
 
-  generator.receive(newWidget());
+    return widget;
+  }
+
+  crate.isFull = function() {
+    return !(!(this.widget));
+  }
+
+  crate.draw();
+
+  stage.addChild(crate);
+
+  return crate;
 }
+
+function buildSupplier(x,y) {
+  var supplier = new PIXI.Graphics();
+
+  supplier.x = x;
+  supplier.y = y;
+
+  supplier.exit_point = {x: x + 45, y: y + 30};
+
+  supplier.draw = function() {
+    this.beginFill(0xff9999);
+    this.lineStyle(5, 0x000000);
+    this.drawPolygon([0,60,45,30,0,0]);
+    this.endFill();
+  }
+
+  supplier.produce = function(deliver) {
+    deliver(newWidget())
+  }
+
+  stage.addChild(supplier);
+  supplier.draw();
+
+  return supplier;
+}
+
 
 function newWidget() {
   var widget = new PIXI.Graphics();
@@ -227,7 +159,7 @@ function newWidget() {
 
   widget.beginFill(0xff0000);
   widget.lineStyle(5, 0x000000);
-  widget.drawCircle(0,0,15);
+  widget.drawCircle(0,0,15  );
 
   return widget;
 };
