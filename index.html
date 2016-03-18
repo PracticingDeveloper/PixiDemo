@@ -33,8 +33,6 @@ var pointer = t.makePointer();
 
 var space = keyboard(32);
 
-var supplier, crate, order;
-
 space.release = function() {
   //order.submit();
 }
@@ -43,15 +41,50 @@ setup()
 gameLoop();
 
 function setup() {
-  supplier = buildSupplier(200,200);
-  crate    = buildCrate(510,140);
-
-  order    = buildOrder(supplier, crate);
-
- _.times(3, function() {
-    order.submit();
-  });
+  buildRedSupplyChain();
+  buildBlueSupplyChain();
 }
+
+function buildRedSupplyChain() {
+  var supplier = buildSupplier("red", 200,100);
+  var crate    = buildCrate(510,40);
+
+  var order    = buildOrder(supplier, crate);
+  
+  t.makeInteractive(crate);
+
+  crate.tap = function() {
+    w = this.pop();
+
+    if (w) {
+      stage.removeChild(w)
+      order.submit();
+    }
+  }
+
+  _.times(3, function() { order.submit(); });
+}
+
+function buildBlueSupplyChain() {
+  var supplier = buildSupplier("blue", 200,400);
+  var crate    = buildCrate(510,340);
+
+  var order    = buildOrder(supplier, crate);
+  
+  t.makeInteractive(crate);
+
+  crate.tap = function() {
+    w = this.pop();
+
+    if (w) {
+      stage.removeChild(w)
+      order.submit();
+    }
+  }
+
+  _.times(3, function() { order.submit(); });
+}
+
 
 function gameLoop() {
   id = requestAnimationFrame(gameLoop);
@@ -95,17 +128,6 @@ function buildCrate(x,y) {
 
   crate.contents = [];
 
-  t.makeInteractive(crate);
-
-  crate.tap = function() {
-    w = this.pop();
-
-    if (w) {
-      stage.removeChild(w)
-      order.submit();
-    }
-  }
-
   //crate.entrance_point = {x: crate.x, y: crate.y + 50};
   //crate.exit_point     = {x: crate.x + 100, y: crate.y + 50};
 
@@ -140,17 +162,23 @@ function buildCrate(x,y) {
   return crate;
 }
 
-function buildSupplier(x,y) {
+function buildSupplier(color, x,y) {
   var supplier = new PIXI.Graphics();
 
   supplier.x = x;
   supplier.y = y;
+  supplier.color = color;
 
   supplier.exit_point = {x: x + 45, y: y + 30};
   supplier.queue = [];
 
   supplier.draw = function() {
-    this.beginFill(0xcc66cc);
+    if (color == "red") {
+      this.beginFill(0xcc6666);
+    } else {
+      this.beginFill(0x6666cc);
+    }
+
     this.lineStyle(5, 0x000000);
     this.drawPolygon([0,60,45,30,0,0]);
     this.endFill();
@@ -160,7 +188,7 @@ function buildSupplier(x,y) {
     setTimeout(function() {
       var deliver = supplier.queue.pop();
 
-      deliver(newWidget());
+      deliver(newWidget(supplier.color));
       if (supplier.queue.length > 0) {
         supplier.start_job();
       }
@@ -182,13 +210,20 @@ function buildSupplier(x,y) {
 }
 
 
-function newWidget() {
+function newWidget(color) {
   var widget = new PIXI.Graphics();
+  widget.color = color;
+  
   stage.addChild(widget);
 
-  widget.beginFill(0xff00ff);
+  if (color == "red") {
+    widget.beginFill(0xff0000);
+  } else {
+    widget.beginFill(0x0000ff);
+  }
+
   widget.lineStyle(5, 0x000000);
-  widget.drawCircle(0,0,15  );
+  widget.drawCircle(0,0,15);
 
   return widget;
 };
