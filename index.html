@@ -2,131 +2,18 @@
 <meta charset="utf-8">
 <title>Displaying the canvas</title>
 <body>
-<script src="vendor/pixi.min.js"></script>
-<script src="vendor/tink.js"></script>
-<script src="vendor/underscore-min.js"></script>
-<script src="vendor/bump.js"></script>
-<script src="vendor/keyboard.js"></script>
+  <script src="vendor/pixi.min.js"></script>
+  <script src="vendor/tink.js"></script>
+  <script src="vendor/underscore-min.js"></script>
+  <script src="vendor/bump.js"></script>
+  <script src="vendor/keyboard.js"></script>
 
-<script src="lib/widget.js"></script>
-<script src="lib/supplier.js"></script>
-<script src="lib/worker.js"></script>
-<script src="lib/crate.js"></script>
-<script src="lib/order.js"></script>
-<script src="lib/machine.js"></script>
-<script>
-
-//Aliases
-var Container = PIXI.Container,
-    autoDetectRenderer = PIXI.autoDetectRenderer,
-    loader = PIXI.loader,
-    resources = PIXI.loader.resources,
-    TextureCache = PIXI.utils.TextureCache,
-    Texture = PIXI.Texture,
-    Sprite = PIXI.Sprite,
-    Graphics = PIXI.Graphics;
-//Create a Pixi stage and renderer and add the 
-//renderer.view to the DOM
-var stage = new Container(),
-    renderer = autoDetectRenderer(1000,600);
-
-renderer.backgroundColor = 0xFFFFFF;
-document.body.appendChild(renderer.view);
-
-var t = new Tink(PIXI, renderer.view);
-var b = new Bump(PIXI);
-
-var pointer = t.makePointer();
-
-var space = keyboard(32);
-
-var red_crate, blue_crate;
-
-space.release = function() {
-  //order.submit();
-}
-
-setup()
-gameLoop();
-
-function setup() {
-  buildRedSupplyChain();
-  buildBlueSupplyChain();
-  buildMachineSupplyChain();
-}
-
-function buildMachineSupplyChain() {
-  var machine = buildMachine(700,250);
-  var crate   = buildCrate(850,190);
-  var order   = buildOrder(machine, crate);
-
-  t.makeInteractive(crate);
-
-  crate.tap = function() {
-    w = crate.pop();
-
-    if (w) {
-      stage.removeChild(w)
-      order.submit();
-    }
-  }
-  
-  machine.addSupplyCrate(red_crate);
-  machine.addSupplyCrate(blue_crate);
-
-
-  _.times(3, function() { order.submit(); });
-}
-
-function buildRedSupplyChain() {
-  red_crate = buildCrate(510,40);
-
-  var supplier  = buildSupplier("red", 200,100);
-
-  var order    = buildOrder(supplier, red_crate);
-  
-  red_crate.consume = function() {
-    w = red_crate.pop();
-
-    if (w) {
-      stage.removeChild(w)
-      order.submit();
-    }
-
-    return w;
-  }
-
-  _.times(3, function() { order.submit(); });
-}
-
-function buildBlueSupplyChain() {
-  blue_crate    = buildCrate(510,340);
-
-  var supplier = buildSupplier("blue", 200,400);
-  var order    = buildOrder(supplier, blue_crate);
-  
-  t.makeInteractive(blue_crate);
-
-  blue_crate.consume = function() {
-    w = blue_crate.pop();
-
-    if (w) {
-      stage.removeChild(w)
-      order.submit();
-    }
-
-    return w;
-  }
-
-  _.times(3, function() { order.submit(); });
-}
-
-
-function gameLoop() {
-  id = requestAnimationFrame(gameLoop);
-  t.update();
-  
-  renderer.render(stage);
-}
-</script>
+  <script src="lib/widget.js"></script>
+  <script src="lib/supplier.js"></script>
+  <script src="lib/worker.js"></script>
+  <script src="lib/crate.js"></script>
+  <script src="lib/order.js"></script>
+  <script src="lib/machine.js"></script>
+  <script src="lib/main.js"></script>
 </body>
+</html>
