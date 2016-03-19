@@ -40,6 +40,8 @@ var pointer = t.makePointer();
 
 var space = keyboard(32);
 
+var red_crate, blue_crate;
+
 space.release = function() {
   //order.submit();
 }
@@ -68,35 +70,52 @@ function buildMachineSupplyChain() {
       order.submit();
     }
   }
+  
+  machine.addSupplyCrate(red_crate);
+  machine.addSupplyCrate(blue_crate);
+
 
   _.times(3, function() { order.submit(); });
 }
 
 function buildRedSupplyChain() {
-  var supplier = buildSupplier("red", 200,100);
-  var crate    = buildCrate(510,40);
+  red_crate = buildCrate(510,40);
 
-  var order    = buildOrder(supplier, crate);
+  var supplier  = buildSupplier("red", 200,100);
+
+  var order    = buildOrder(supplier, red_crate);
   
-
-  _.times(3, function() { order.submit(); });
-}
-
-function buildBlueSupplyChain() {
-  var supplier = buildSupplier("blue", 200,400);
-  var crate    = buildCrate(510,340);
-
-  var order    = buildOrder(supplier, crate);
-  
-  t.makeInteractive(crate);
-
-  crate.tap = function() {
-    w = this.pop();
+  red_crate.consume = function() {
+    w = red_crate.pop();
 
     if (w) {
       stage.removeChild(w)
       order.submit();
     }
+
+    return w;
+  }
+
+  _.times(3, function() { order.submit(); });
+}
+
+function buildBlueSupplyChain() {
+  blue_crate    = buildCrate(510,340);
+
+  var supplier = buildSupplier("blue", 200,400);
+  var order    = buildOrder(supplier, blue_crate);
+  
+  t.makeInteractive(blue_crate);
+
+  blue_crate.consume = function() {
+    w = blue_crate.pop();
+
+    if (w) {
+      stage.removeChild(w)
+      order.submit();
+    }
+
+    return w;
   }
 
   _.times(3, function() { order.submit(); });
